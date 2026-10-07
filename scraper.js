@@ -42,9 +42,9 @@ async function notifyDiscord(title, url) {
     const message = getCoverLetter(title, url);
     try {
         await axios.post(WEBHOOK_URL, { content: message });
-        console.log(\`Notifikácia odoslaná pre: \${title}\`);
+        console.log(`Notifikácia odoslaná pre: ${title}`);
     } catch (error) {
-        console.error(\`Chyba pri odosielaní na Discord: \${error.message}\`);
+        console.error(`Chyba pri odosielaní na Discord: ${error.message}`);
     }
 }
 
@@ -56,7 +56,7 @@ function filterJob(title) {
     const hasPositive = positiveKeywords.some(kw => {
         // Pre krátke slová obmedzenie na celé slovo (aby "c" nenamatchovalo "práca")
         if (['c', 'js', 'lan', 'php'].includes(kw)) {
-            return new RegExp(\`\\\\b\${kw}\\\\b\`, 'i').test(lowerTitle);
+            return new RegExp(`\\b${kw}\\b`, 'i').test(lowerTitle);
         }
         if (kw === 'c++') {
             return lowerTitle.includes('c++');
@@ -68,7 +68,7 @@ function filterJob(title) {
     const hasNegative = negativeKeywords.some(kw => {
         // Pre "tpp" používame word boundaries aby nenašlo napr. iné slovo s "tpp"
         if (['tpp'].includes(kw)) {
-            return new RegExp(\`\\\\b\${kw}\\\\b\`, 'i').test(lowerTitle);
+            return new RegExp(`\\b${kw}\\b`, 'i').test(lowerTitle);
         }
         return lowerTitle.includes(kw);
     });
@@ -111,14 +111,14 @@ async function scrape() {
                 // ID inzerátu (preferuje 'id' atribút)
                 const id = $(el).attr('id') || href;
                 // Skompletizovanie URL
-                const url = href.startsWith('http') ? href : \`https://www.profesia.sk\${href}\`;
+                const url = href.startsWith('http') ? href : `https://www.profesia.sk${href}`;
                 profesiaJobs.push({ id, title, url });
             }
         });
 
         for (const job of profesiaJobs) {
             if (!seen.includes(job.id) && filterJob(job.title)) {
-                console.log(\`Nájdená zhoda (Profesia): \${job.title}\`);
+                console.log(`Nájdená zhoda (Profesia): ${job.title}`);
                 await notifyDiscord(job.title, job.url);
                 seen.push(job.id);
                 newJobsFound = true;
@@ -138,7 +138,7 @@ async function scrape() {
             const href = titleEl.attr('href');
             
             if (title && href) {
-                const url = href.startsWith('http') ? href : \`https://www.brigada.sk\${href}\`;
+                const url = href.startsWith('http') ? href : `https://www.brigada.sk${href}`;
                 // ID pri brigada.sk je určené na základe samotného odkazu
                 const id = url;
                 brigadaJobs.push({ id, title, url });
@@ -147,7 +147,7 @@ async function scrape() {
 
         for (const job of brigadaJobs) {
             if (!seen.includes(job.id) && filterJob(job.title)) {
-                console.log(\`Nájdená zhoda (Brigada.sk): \${job.title}\`);
+                console.log(`Nájdená zhoda (Brigada.sk): ${job.title}`);
                 await notifyDiscord(job.title, job.url);
                 seen.push(job.id);
                 newJobsFound = true;
