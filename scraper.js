@@ -118,6 +118,8 @@ async function scrape() {
                 }
             });
 
+            console.log(`Profesia (strana ${pageNum}): Nájdených inzerátov na stránke: ${profesiaJobs.length}`);
+
             for (const job of profesiaJobs) {
                 if (!seen.includes(job.id) && filterJob(job.title)) {
                     console.log(`Nájdená zhoda (Profesia): ${job.title}`);
@@ -147,6 +149,8 @@ async function scrape() {
                 brigadaJobs.push({ id, title, url });
             }
         });
+
+        console.log(`Brigada.sk: Nájdených inzerátov na stránke: ${brigadaJobs.length}`);
 
         for (const job of brigadaJobs) {
             if (!seen.includes(job.id) && filterJob(job.title)) {
