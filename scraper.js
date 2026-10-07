@@ -113,6 +113,7 @@ async function scrape() {
                 });
 
                 console.log(`Profesia (strana ${pageNum}): Nájdených inzerátov na stránke: ${profesiaJobs.length}`);
+                console.log(`HTML Title: ${$('title').text()}`);
 
                 for (const job of profesiaJobs) {
                     if (!seen.includes(job.id) && filterJob(job.title)) {
@@ -147,6 +148,7 @@ async function scrape() {
             });
 
             console.log(`Brigada.sk: Nájdených inzerátov na stránke: ${brigadaJobs.length}`);
+            console.log(`HTML Title: ${$('title').text()}`);
 
             for (const job of brigadaJobs) {
                 if (!seen.includes(job.id) && filterJob(job.title)) {
