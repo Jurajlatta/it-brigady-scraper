@@ -56,7 +56,7 @@ function filterJob(title) {
     const hasPositive = positiveKeywords.some(kw => {
         // Pre krátke slová obmedzenie na celé slovo (aby "c" nenamatchovalo "práca")
         if (['it', 'c', 'js', 'lan', 'php'].includes(kw)) {
-            return new RegExp(`\\b${kw}\\b`, 'i').test(lowerTitle);
+            return new RegExp("(^|[^a-zA-Z0-9_])" + kw + "([^a-zA-Z0-9_]|$)", 'i').test(lowerTitle);
         }
         if (kw === 'c++') {
             return lowerTitle.includes('c++');
@@ -68,7 +68,7 @@ function filterJob(title) {
     const hasNegative = negativeKeywords.some(kw => {
         // Pre "tpp" používame word boundaries aby nenašlo napr. iné slovo s "tpp"
         if (['tpp'].includes(kw)) {
-            return new RegExp(`\\b${kw}\\b`, 'i').test(lowerTitle);
+            return new RegExp("(^|[^a-zA-Z0-9_])" + kw + "([^a-zA-Z0-9_]|$)", 'i').test(lowerTitle);
         }
         return lowerTitle.includes(kw);
     });
