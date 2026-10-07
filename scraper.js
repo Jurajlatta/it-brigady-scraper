@@ -12,7 +12,7 @@ const WEBHOOK_URL = process.env.WEBHOOK_URL || 'YOUR_DISCORD_WEBHOOK_URL_HERE';
 const SEEN_FILE = './videl_som.json';
 
 // Filtre
-const positiveKeywords = ['cisco', 'ccna', 'sieť', 'siete', 'lan', 'php', 'javascript', 'js', 'html', 'c', 'c++', 'hardware', 'hardvér', 'support', 'helpdesk', 'tester', 'it podpora', 'junior', 'technik', 'admin', 'správca'];
+const positiveKeywords = ['it', 'cisco', 'ccna', 'sieť', 'siete', 'lan', 'php', 'javascript', 'js', 'html', 'c', 'c++', 'hardware', 'hardvér', 'support', 'helpdesk', 'tester', 'it podpora', 'junior', 'technik', 'technical', 'admin', 'správca'];
 const negativeKeywords = ['tpp', 'full-time', 'full time', 'plný úväzok', 'senior', 'medior', '18+'];
 
 // Funkcia pre formátovanie motivačného listu
@@ -55,7 +55,7 @@ function filterJob(title) {
     // Pozitívny filter (musí obsahovať aspoň 1 slovo)
     const hasPositive = positiveKeywords.some(kw => {
         // Pre krátke slová obmedzenie na celé slovo (aby "c" nenamatchovalo "práca")
-        if (['c', 'js', 'lan', 'php'].includes(kw)) {
+        if (['it', 'c', 'js', 'lan', 'php'].includes(kw)) {
             return new RegExp(`\\b${kw}\\b`, 'i').test(lowerTitle);
         }
         if (kw === 'c++') {
@@ -95,33 +95,36 @@ async function scrape() {
 
     try {
         // --- 1. Zdroj: Profesia.sk ---
-        console.log('Scraping Profesia.sk...');
-        await page.goto('https://www.profesia.sk/praca/bratislava/brigada,skrateny-uvazok/?search_anywhere=IT', { waitUntil: 'domcontentloaded', timeout: 60000 });
-        let html = await page.content();
-        let $ = cheerio.load(html);
-        
-        const profesiaJobs = [];
-        $('.list-row').each((i, el) => {
-            const titleEl = $(el).find('.title a');
-            // Získavame názov pozície (z linku vnútri hlavičky, prípadne z hlavičky)
-            const title = titleEl.text().trim() || $(el).find('.title').text().trim();
-            const href = titleEl.attr('href');
+        console.log('Scraping Profesia.sk (strany 1-3)...');
+        for (let pageNum = 1; pageNum <= 3; pageNum++) {
+            const profesiaUrl = `https://www.profesia.sk/praca/bratislava/brigada,skrateny-uvazok/?search_anywhere=IT&page_num=${pageNum}`;
+            await page.goto(profesiaUrl, { waitUntil: 'domcontentloaded', timeout: 60000 });
+            let html = await page.content();
+            let $ = cheerio.load(html);
             
-            if (title && href) {
-                // ID inzerátu (preferuje 'id' atribút)
-                const id = $(el).attr('id') || href;
-                // Skompletizovanie URL
-                const url = href.startsWith('http') ? href : `https://www.profesia.sk${href}`;
-                profesiaJobs.push({ id, title, url });
-            }
-        });
+            const profesiaJobs = [];
+            $('.list-row').each((i, el) => {
+                const titleEl = $(el).find('.title a');
+                // Získavame názov pozície (z linku vnútri hlavičky, prípadne z hlavičky)
+                const title = titleEl.text().trim() || $(el).find('.title').text().trim();
+                const href = titleEl.attr('href');
+                
+                if (title && href) {
+                    // ID inzerátu (preferuje 'id' atribút)
+                    const id = $(el).attr('id') || href;
+                    // Skompletizovanie URL
+                    const url = href.startsWith('http') ? href : `https://www.profesia.sk${href}`;
+                    profesiaJobs.push({ id, title, url });
+                }
+            });
 
-        for (const job of profesiaJobs) {
-            if (!seen.includes(job.id) && filterJob(job.title)) {
-                console.log(`Nájdená zhoda (Profesia): ${job.title}`);
-                await notifyDiscord(job.title, job.url);
-                seen.push(job.id);
-                newJobsFound = true;
+            for (const job of profesiaJobs) {
+                if (!seen.includes(job.id) && filterJob(job.title)) {
+                    console.log(`Nájdená zhoda (Profesia): ${job.title}`);
+                    await notifyDiscord(job.title, job.url);
+                    seen.push(job.id);
+                    newJobsFound = true;
+                }
             }
         }
 
