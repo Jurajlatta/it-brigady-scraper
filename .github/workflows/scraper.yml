@@ -2,8 +2,8 @@ name: IT Brigády Scraper
 
 on:
   schedule:
-    # Beží automaticky o 8:00, 12:00 a 16:00 UTC
-    - cron: '0 8,12,16 * * *'
+    # Beží automaticky každé 2 hodiny
+    - cron: '0 */2 * * *'
   workflow_dispatch: # Umožňuje manuálne spustenie z GitHub Actions rozhrania
 
 jobs:
