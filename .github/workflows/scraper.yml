@@ -1,0 +1,46 @@
+name: IT Brigády Scraper
+
+on:
+  schedule:
+    # Beží automaticky o 8:00, 12:00 a 16:00 UTC
+    - cron: '0 8,12,16 * * *'
+  workflow_dispatch: # Umožňuje manuálne spustenie z GitHub Actions rozhrania
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    
+    # Pridáme práva na commit späť do repozitára
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout repozitára
+      uses: actions/checkout@v4
+
+    - name: Nastavenie Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+
+    - name: Inštalácia systémových knižníc pre Puppeteer
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y libnss3 libnspr4 libgbm1 libasound2
+
+    - name: Inštalácia Node dependencií
+      run: npm install
+
+    - name: Spustenie scrapera
+      run: node scraper.js
+      env:
+        # Pre bezpečnosť si pre Discord webhook nastavte GitHub Secret "DISCORD_WEBHOOK_URL"
+        WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+    - name: Git commit a push (videl_som.json)
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add videl_som.json
+        # Ak nie sú žiadne zmeny (nenašla sa nová brigáda), nič sa necommitne
+        git diff --quiet && git diff --staged --quiet || (git commit -m "Aktualizácia videných inzerátov [skip ci]" && git push)
