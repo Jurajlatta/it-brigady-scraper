@@ -89,7 +89,7 @@ async function scrape() {
         for (let pageNum = 1; pageNum <= 3; pageNum++) {
             try {
                 const profesiaUrl = `https://www.profesia.sk/praca/bratislava/brigada,skrateny-uvazok/?search_anywhere=IT&page_num=${pageNum}`;
-                const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(profesiaUrl)}`;
+                const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(profesiaUrl)}&country_code=sk`;
                 
                 const response = await axios.get(proxyUrl, { timeout: 60000 });
                 let $ = cheerio.load(response.data);
@@ -125,22 +125,23 @@ async function scrape() {
         // --- 2. Zdroj: Brigada.sk ---
         console.log('Scraping Brigada.sk...');
         try {
-            const brigadaUrl = 'https://www.brigada.sk/brigady-a-praca-pre-studentov/bratislava';
-            const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(brigadaUrl)}`;
+            const brigadaUrl = 'https://www.brigada.sk/brigady-bratislava';
+            const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(brigadaUrl)}&country_code=sk`;
             
             const response = await axios.get(proxyUrl, { timeout: 60000 });
             let $ = cheerio.load(response.data);
 
             const brigadaJobs = [];
-            $('.inzerat').each((i, el) => {
-                const titleEl = $(el).find('h2 a, h3 a').first();
-                const title = titleEl.text().trim();
-                const href = titleEl.attr('href');
+            $('a[href*="/brigady-na-slovensku/"]').each((i, el) => {
+                const title = $(el).text().trim();
+                const href = $(el).attr('href');
                 
-                if (title && href) {
+                if (title && href && title.length > 3) {
                     const url = href.startsWith('http') ? href : `https://www.brigada.sk${href}`;
                     const id = url;
-                    brigadaJobs.push({ id, title, url });
+                    if (!brigadaJobs.some(j => j.id === id)) {
+                        brigadaJobs.push({ id, title, url });
+                    }
                 }
             });
 
