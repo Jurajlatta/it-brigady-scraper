@@ -80,15 +80,8 @@ async function scrape() {
 
     let newJobsFound = false;
 
-    // Axios konfigurácia s hlavičkami, ktoré predstierajú reálny prehliadač / bota
-    const axiosConfig = {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'sk,cs;q=0.9,en;q=0.8'
-        },
-        timeout: 15000
-    };
+    // Odstránili sme custom hlavičky pre axios, pretože ScraperAPI rieši hlavičky aj IP rotáciu za nás.
+    const SCRAPER_API_KEY = process.env.SCRAPERAPI_KEY || '993bdf77e63579b44bdc4f045444fc69';
 
     try {
         // --- 1. Zdroj: Profesia.sk ---
@@ -96,7 +89,9 @@ async function scrape() {
         for (let pageNum = 1; pageNum <= 3; pageNum++) {
             try {
                 const profesiaUrl = `https://www.profesia.sk/praca/bratislava/brigada,skrateny-uvazok/?search_anywhere=IT&page_num=${pageNum}`;
-                const response = await axios.get(profesiaUrl, axiosConfig);
+                const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(profesiaUrl)}`;
+                
+                const response = await axios.get(proxyUrl, { timeout: 60000 });
                 let $ = cheerio.load(response.data);
                 
                 const profesiaJobs = [];
@@ -113,7 +108,6 @@ async function scrape() {
                 });
 
                 console.log(`Profesia (strana ${pageNum}): Nájdených inzerátov na stránke: ${profesiaJobs.length}`);
-                console.log(`HTML Title: ${$('title').text()}`);
 
                 for (const job of profesiaJobs) {
                     if (!seen.includes(job.id) && filterJob(job.title)) {
@@ -131,7 +125,10 @@ async function scrape() {
         // --- 2. Zdroj: Brigada.sk ---
         console.log('Scraping Brigada.sk...');
         try {
-            const response = await axios.get('https://www.brigada.sk/brigady-a-praca-pre-studentov/bratislava', axiosConfig);
+            const brigadaUrl = 'https://www.brigada.sk/brigady-a-praca-pre-studentov/bratislava';
+            const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(brigadaUrl)}`;
+            
+            const response = await axios.get(proxyUrl, { timeout: 60000 });
             let $ = cheerio.load(response.data);
 
             const brigadaJobs = [];
@@ -148,7 +145,6 @@ async function scrape() {
             });
 
             console.log(`Brigada.sk: Nájdených inzerátov na stránke: ${brigadaJobs.length}`);
-            console.log(`HTML Title: ${$('title').text()}`);
 
             for (const job of brigadaJobs) {
                 if (!seen.includes(job.id) && filterJob(job.title)) {
