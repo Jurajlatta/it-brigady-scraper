@@ -84,9 +84,9 @@ async function scrape() {
     const SCRAPER_API_KEY = process.env.SCRAPERAPI_KEY || '993bdf77e63579b44bdc4f045444fc69';
 
     try {
-        // --- 1. Zdroj: Profesia.sk ---
-        console.log('Scraping Profesia.sk (strany 1-3)...');
-        for (let pageNum = 1; pageNum <= 3; pageNum++) {
+        // --- 1. Zdroj: Profesia.sk (strany 1-4) ---
+        console.log('Scraping Profesia.sk (strany 1-4)...');
+        for (let pageNum = 1; pageNum <= 4; pageNum++) {
             try {
                 const profesiaUrl = `https://www.profesia.sk/praca/bratislava/brigada,skrateny-uvazok/?search_anywhere=IT&page_num=${pageNum}`;
                 const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(profesiaUrl)}&country_code=sk`;
@@ -117,46 +117,60 @@ async function scrape() {
                         newJobsFound = true;
                     }
                 }
+
+                // Ak na danej strane už nie sú inzeráty, zastavíme
+                if (profesiaJobs.length === 0) {
+                    break;
+                }
             } catch (err) {
                 console.error(`Chyba pri načítaní Profesia strany ${pageNum}: ${err.message}`);
             }
         }
 
-        // --- 2. Zdroj: Brigada.sk ---
-        console.log('Scraping Brigada.sk...');
-        try {
-            const brigadaUrl = 'https://www.brigada.sk/brigady-bratislava';
-            const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(brigadaUrl)}&country_code=sk`;
-            
-            const response = await axios.get(proxyUrl, { timeout: 60000 });
-            let $ = cheerio.load(response.data);
-
-            const brigadaJobs = [];
-            $('a[href*="/brigady-na-slovensku/"]').each((i, el) => {
-                const title = $(el).text().trim();
-                const href = $(el).attr('href');
+        // --- 2. Zdroj: Brigada.sk (strany 1-4) ---
+        console.log('Scraping Brigada.sk (strany 1-4)...');
+        for (let pageNum = 1; pageNum <= 4; pageNum++) {
+            try {
+                const brigadaUrl = pageNum === 1
+                    ? 'https://www.brigada.sk/brigady-bratislava'
+                    : `https://www.brigada.sk/brigady-bratislava?page=${pageNum}`;
+                const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(brigadaUrl)}&country_code=sk`;
                 
-                if (title && href && title.length > 3) {
-                    const url = href.startsWith('http') ? href : `https://www.brigada.sk${href}`;
-                    const id = url;
-                    if (!brigadaJobs.some(j => j.id === id)) {
-                        brigadaJobs.push({ id, title, url });
+                const response = await axios.get(proxyUrl, { timeout: 60000 });
+                let $ = cheerio.load(response.data);
+
+                const brigadaJobs = [];
+                $('a[href*="/brigady-na-slovensku/"]').each((i, el) => {
+                    const title = $(el).text().trim();
+                    const href = $(el).attr('href');
+                    
+                    if (title && href && title.length > 3) {
+                        const url = href.startsWith('http') ? href : `https://www.brigada.sk${href}`;
+                        const id = url;
+                        if (!brigadaJobs.some(j => j.id === id)) {
+                            brigadaJobs.push({ id, title, url });
+                        }
+                    }
+                });
+
+                console.log(`Brigada.sk (strana ${pageNum}): Nájdených inzerátov na stránke: ${brigadaJobs.length}`);
+
+                for (const job of brigadaJobs) {
+                    if (!seen.includes(job.id) && filterJob(job.title)) {
+                        console.log(`Nájdená zhoda (Brigada.sk): ${job.title}`);
+                        await notifyDiscord(job.title, job.url);
+                        seen.push(job.id);
+                        newJobsFound = true;
                     }
                 }
-            });
 
-            console.log(`Brigada.sk: Nájdených inzerátov na stránke: ${brigadaJobs.length}`);
-
-            for (const job of brigadaJobs) {
-                if (!seen.includes(job.id) && filterJob(job.title)) {
-                    console.log(`Nájdená zhoda (Brigada.sk): ${job.title}`);
-                    await notifyDiscord(job.title, job.url);
-                    seen.push(job.id);
-                    newJobsFound = true;
+                // Ak na stránke nie sú žiadne inzeráty (skončil zoznam ponúk), ukončíme cyklus
+                if (brigadaJobs.length === 0) {
+                    break;
                 }
+            } catch (err) {
+                console.error(`Chyba pri načítaní Brigada.sk strany ${pageNum}: ${err.message}`);
             }
-        } catch (err) {
-            console.error(`Chyba pri načítaní Brigada.sk: ${err.message}`);
         }
 
     } catch (error) {
