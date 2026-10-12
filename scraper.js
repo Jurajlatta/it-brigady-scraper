@@ -88,7 +88,7 @@ async function scrape() {
         console.log('Scraping Profesia.sk (strany 1-4)...');
         for (let pageNum = 1; pageNum <= 4; pageNum++) {
             try {
-                const profesiaUrl = `https://www.profesia.sk/praca/bratislava/brigada,skrateny-uvazok/?search_anywhere=IT&page_num=${pageNum}`;
+                const profesiaUrl = `https://www.profesia.sk/praca/bratislavsky-kraj/brigada,skrateny-uvazok/?search_anywhere=IT&page_num=${pageNum}`;
                 const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(profesiaUrl)}&country_code=sk`;
                 
                 const response = await axios.get(proxyUrl, { timeout: 60000 });
@@ -132,8 +132,8 @@ async function scrape() {
         for (let pageNum = 1; pageNum <= 4; pageNum++) {
             try {
                 const brigadaUrl = pageNum === 1
-                    ? 'https://www.brigada.sk/brigady-bratislava'
-                    : `https://www.brigada.sk/brigady-bratislava?page=${pageNum}`;
+                    ? 'https://www.brigada.sk/brigady-v-bratislavskom-kraji'
+                    : `https://www.brigada.sk/brigady-v-bratislavskom-kraji?page=${pageNum}`;
                 const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(brigadaUrl)}&country_code=sk`;
                 
                 const response = await axios.get(proxyUrl, { timeout: 60000 });

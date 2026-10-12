@@ -1,6 +1,6 @@
-# 🤖 IT Brigády Scraper (Bratislava)
+# 🤖 IT Brigády Scraper (Bratislava, Malacky a okolie)
 
-Tento projekt je plne automatizovaný Node.js bot (scraper), ktorý beží nepretržite 24/7 prostredníctvom **GitHub Actions**. Slúži na monitorovanie pracovných portálov (Profesia.sk, Brigada.sk) a vyhľadávanie nových IT brigád a čiastočných úväzkov pre študentov v Bratislave. 
+Tento projekt je plne automatizovaný Node.js bot (scraper), ktorý beží nepretržite 24/7 prostredníctvom **GitHub Actions**. Slúži na monitorovanie pracovných portálov (Profesia.sk, Brigada.sk) a vyhľadávanie nových IT brigád a čiastočných úväzkov pre študentov v regióne Bratislavského kraja (Bratislava, Malacky, Pezinok, Senec a okolie). 
 
 V momente, keď systém deteguje novú pracovnú ponuku spĺňajúcu presné kritériá (pozitívne a negatívne kľúčové slová), odošle notifikáciu vrátane vygenerovaného návrhu motivačného listu priamo na vopred nastavený **Discord kanál** pomocou Webhooku.
 
