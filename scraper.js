@@ -81,7 +81,12 @@ async function scrape() {
     let newJobsFound = false;
 
     // Odstránili sme custom hlavičky pre axios, pretože ScraperAPI rieši hlavičky aj IP rotáciu za nás.
-    const SCRAPER_API_KEY = process.env.SCRAPERAPI_KEY || '993bdf77e63579b44bdc4f045444fc69';
+    // Kľúč sa číta len z prostredia (GitHub Secret SCRAPERAPI_KEY), nikdy nie je v kóde.
+    const SCRAPER_API_KEY = process.env.SCRAPERAPI_KEY;
+    if (!SCRAPER_API_KEY) {
+        console.error('Chýba premenná prostredia SCRAPERAPI_KEY. Nastav ju a spusti skript znova.');
+        process.exit(1);
+    }
 
     try {
         // --- 1. Zdroj: Profesia.sk (strany 1-4) ---
