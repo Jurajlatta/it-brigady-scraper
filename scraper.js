@@ -2,13 +2,42 @@ const fs = require('fs');
 const cheerio = require('cheerio');
 const axios = require('axios');
 
-// Webhook URL môže byť načítaná z prostredia (pre GitHub Actions) alebo zadaná natvrdo (pre testy)
-const WEBHOOK_URL = process.env.WEBHOOK_URL || 'YOUR_DISCORD_WEBHOOK_URL_HERE';
-const SEEN_FILE = './videl_som.json';
+const path = require('path');
+
+// Webhook URL sa číta z prostredia (WEBHOOK_URL) alebo z lokálneho súboru webhook.local.txt.
+// Súbor webhook.local.txt je v .gitignore, takže sa nikdy nedostane na GitHub.
+function loadWebhook() {
+    if (process.env.WEBHOOK_URL) return process.env.WEBHOOK_URL.trim();
+    const file = path.join(__dirname, 'webhook.local.txt');
+    if (fs.existsSync(file)) return fs.readFileSync(file, 'utf8').trim();
+    return 'YOUR_DISCORD_WEBHOOK_URL_HERE';
+}
+const WEBHOOK_URL = loadWebhook();
+const SEEN_FILE = path.join(__dirname, 'videl_som.json');
+
+// Voliteľné: ak je nastavený SCRAPERAPI_KEY, požiadavky idú cez ScraperAPI (potrebné pri blokovaní IP na GitHub Actions).
+// Bez kľúča sa stránky sťahujú priamo (zadarmo, funguje z domácej IP).
+const SCRAPER_API_KEY = process.env.SCRAPERAPI_KEY;
+const BROWSER_HEADERS = {
+    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
+    'Accept': 'text/html,application/xhtml+xml',
+    'Accept-Language': 'sk-SK,sk;q=0.9,en;q=0.8'
+};
+const DRY_RUN = process.argv.includes('--dry-run');
+// --seed: aktuálne ponuky sa len uložia ako videné (bez Discord notifikácií), aby prvé spustenie nezaplavilo kanál.
+const SEED = process.argv.includes('--seed');
+
+function fetchPage(targetUrl) {
+    if (SCRAPER_API_KEY) {
+        const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(targetUrl)}&country_code=sk`;
+        return axios.get(proxyUrl, { timeout: 60000 });
+    }
+    return axios.get(targetUrl, { headers: BROWSER_HEADERS, timeout: 30000 });
+}
 
 // Filtre
 const positiveKeywords = ['it', 'cisco', 'ccna', 'sieť', 'siete', 'lan', 'php', 'javascript', 'js', 'html', 'c', 'c++', 'hardware', 'hardvér', 'support', 'helpdesk', 'tester', 'it podpora', 'junior', 'technik', 'technical', 'admin', 'správca'];
-const negativeKeywords = ['tpp', 'full-time', 'full time', 'plný úväzok', 'senior', 'medior', '18+'];
+const negativeKeywords = ['tpp', 'full-time', 'full time', 'plný úväzok', 'senior', 'medior', '18+', 'director', 'riaditeľ', 'vedúci', 'leader', 'sales', 'obchodn'];
 
 // Funkcia pre formátovanie motivačného listu
 const getCoverLetter = (title, url) => `
@@ -30,6 +59,11 @@ Juraj Latta
 
 // Funkcia na odoslanie na Discord
 async function notifyDiscord(title, url) {
+    if (DRY_RUN) {
+        console.log(`[dry-run] Odoslala by sa notifikácia: ${title}`);
+        return;
+    }
+    if (SEED) return;
     if (WEBHOOK_URL === 'YOUR_DISCORD_WEBHOOK_URL_HERE') {
         console.log('Webhook URL nie je nastavená, preskakujem notifikáciu.');
         return;
@@ -80,33 +114,24 @@ async function scrape() {
 
     let newJobsFound = false;
 
-    // Odstránili sme custom hlavičky pre axios, pretože ScraperAPI rieši hlavičky aj IP rotáciu za nás.
-    // Kľúč sa číta len z prostredia (GitHub Secret SCRAPERAPI_KEY), nikdy nie je v kóde.
-    const SCRAPER_API_KEY = process.env.SCRAPERAPI_KEY;
-    if (!SCRAPER_API_KEY) {
-        console.error('Chýba premenná prostredia SCRAPERAPI_KEY. Nastav ju a spusti skript znova.');
-        process.exit(1);
-    }
-
     try {
         // --- 1. Zdroj: Profesia.sk (strany 1-4) ---
         console.log('Scraping Profesia.sk (strany 1-4)...');
         for (let pageNum = 1; pageNum <= 4; pageNum++) {
             try {
                 const profesiaUrl = `https://www.profesia.sk/praca/bratislavsky-kraj/brigada,skrateny-uvazok/?search_anywhere=IT&page_num=${pageNum}`;
-                const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(profesiaUrl)}&country_code=sk`;
-                
-                const response = await axios.get(proxyUrl, { timeout: 60000 });
+                const response = await fetchPage(profesiaUrl);
                 let $ = cheerio.load(response.data);
                 
                 const profesiaJobs = [];
                 $('.list-row').each((i, el) => {
-                    const titleEl = $(el).find('.title a');
-                    const title = titleEl.text().trim() || $(el).find('.title').text().trim();
-                    const href = titleEl.attr('href');
-                    
+                    // Štruktúra Profesie: <h2><a id="offerXXXX" href="..."><span class="title">Názov</span></a></h2>
+                    const titleEl = $(el).find('h2 a').first();
+                    const title = titleEl.text().trim();
+                    const href = (titleEl.attr('href') || '').split('?')[0];
+
                     if (title && href) {
-                        const id = $(el).attr('id') || href;
+                        const id = titleEl.attr('id') || href;
                         const url = href.startsWith('http') ? href : `https://www.profesia.sk${href}`;
                         profesiaJobs.push({ id, title, url });
                     }
@@ -139,9 +164,7 @@ async function scrape() {
                 const brigadaUrl = pageNum === 1
                     ? 'https://www.brigada.sk/brigady-v-bratislavskom-kraji'
                     : `https://www.brigada.sk/brigady-v-bratislavskom-kraji?page=${pageNum}`;
-                const proxyUrl = `http://api.scraperapi.com?api_key=${SCRAPER_API_KEY}&url=${encodeURIComponent(brigadaUrl)}&country_code=sk`;
-                
-                const response = await axios.get(proxyUrl, { timeout: 60000 });
+                const response = await fetchPage(brigadaUrl);
                 let $ = cheerio.load(response.data);
 
                 const brigadaJobs = [];
@@ -183,7 +206,7 @@ async function scrape() {
     }
 
     // Uloženie len vtedy, ak sa našli nové brigády
-    if (newJobsFound) {
+    if (newJobsFound && !DRY_RUN) {
         fs.writeFileSync(SEEN_FILE, JSON.stringify(seen, null, 2));
         console.log('Súbor videl_som.json bol aktualizovaný.');
     } else {

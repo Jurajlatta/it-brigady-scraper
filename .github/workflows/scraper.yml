@@ -5,11 +5,16 @@ on:
     # Beží automaticky každé 2 hodiny
     - cron: '0 */2 * * *'
   workflow_dispatch: # Umožňuje manuálne spustenie z GitHub Actions rozhrania
+    inputs:
+      dry_run:
+        description: 'Testovací beh (nič sa neodošle ani neuloží)'
+        type: boolean
+        default: false
 
 jobs:
   scrape:
     runs-on: ubuntu-22.04
-    
+
     # Pridáme práva na commit späť do repozitára
     permissions:
       contents: write
@@ -23,14 +28,15 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Inštalácia Node závislostí
+    - name: Inštalácia Node dependencií
       run: npm install
 
     - name: Spustenie scrapera
-      run: node scraper.js
+      run: node scraper.js ${{ inputs.dry_run && '--dry-run' || '' }}
       env:
-        # Pre bezpečnosť si pre Discord webhook a ScraperAPI nastavte GitHub Secrets
+        # Discord webhook je uložený ako GitHub Secret "DISCORD_WEBHOOK_URL" (nikdy nie v kóde).
         WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        # Voliteľné: ak ho nastavíš, požiadavky idú cez ScraperAPI. Bez neho sa stránky sťahujú priamo.
         SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
 
     - name: Git commit a push (videl_som.json)
