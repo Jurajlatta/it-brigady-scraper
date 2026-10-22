@@ -7,14 +7,14 @@ V momente, keď systém deteguje novú pracovnú ponuku spĺňajúcu presné kri
 ## 🛠️ Použité technológie a architektúra
 - **Node.js** - Runtime prostredie pre beh skriptu.
 - **Axios** - Zabezpečuje asynchrónne HTTP požiadavky na stiahnutie zdrojového kódu pracovných portálov (s využitím custom hlavičiek pre anti-bot bypass).
-- **Cheerio** - Slúži na parsovanie a extrakciu štrukturálnych dát (názov pozície, link, ID) z DOM štruktúry stránok.
+- **Cheerio** - Slúži na parsovanie a extrakciu štruktúrovaných dát (názov pozície, link, ID) z DOM štruktúry stránok.
 - **GitHub Actions** - Zabezpečuje serverless beh skriptu (cron job každé 2 hodiny).
 - **Discord Webhooks** - Rýchle doručovanie push notifikácií na Discord server.
-- **FS (File System)** - Práca so stavovým súbororm `videl_som.json`, ktorý zabezpečuje deduplikáciu inzerátov a slúži ako malá lokálna pamäť robota (tzv. state management).
+- **FS (File System)** - Práca so stavovým súborom `videl_som.json`, ktorý zabezpečuje deduplikáciu inzerátov a slúži ako malá lokálna pamäť robota (tzv. state management).
 
 ## 🧠 Ako funguje filtrovanie inzerátov
 Skript využíva pokročilé regulárne výrazy (RegExp) pre presný záchyt ponúk bez takzvaných "false-positives" (falošných zhôd).
-- **Pozitívne kľúčové slová:** Skript očakáva zhodu aspoň jedného slova (napr. `cisco`, `php`, `it podpora`, `junior`, `tester`). Kratšie slová (ako `it`, `c`, `js`) sú izolované word-boundaries `(^|[^a-zA-Z0-9_])`, aby sa zamedzilo zhode s inými slovami (napr. slovo "kval**it**a" nespúšťa notifikáciu pre kľúčové slovo "it").
+- **Pozitívne kľúčové slová:** Skript očakáva zhodu aspoň jedného slova (napr. `cisco`, `php`, `it podpora`, `junior`, `tester`). Kratšie slová (ako `it`, `c`, `js`) sú izolované word-boundaries `(^|[^a-zA-Z0-9_])`, aby sa zamedzilo zhode s inými slovami (napr. slovo "kval**it**a" nespustí notifikáciu pre kľúčové slovo "it").
 - **Negatívne kľúčové slová:** Skript automaticky vyraďuje ponuky, ktoré explicitne vyžadujú senioritu, prípadne TPP (napr. `senior`, `tpp`, `full-time`).
 
 ## 🚀 Inštalácia a spustenie (lokálne)
