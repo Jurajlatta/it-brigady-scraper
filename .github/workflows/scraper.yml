@@ -23,14 +23,15 @@ jobs:
       with:
         node-version: '20'
 
-    - name: Inštalácia Node dependencií
+    - name: Inštalácia Node závislostí
       run: npm install
 
     - name: Spustenie scrapera
       run: node scraper.js
       env:
-        # Pre bezpečnosť si pre Discord webhook nastavte GitHub Secret "DISCORD_WEBHOOK_URL"
+        # Pre bezpečnosť si pre Discord webhook a ScraperAPI nastavte GitHub Secrets
         WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+        SCRAPERAPI_KEY: ${{ secrets.SCRAPERAPI_KEY }}
 
     - name: Git commit a push (videl_som.json)
       run: |
