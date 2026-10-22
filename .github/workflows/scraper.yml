@@ -1,9 +1,6 @@
 name: IT Brigády Scraper
 
 on:
-  schedule:
-    # Beží automaticky každé 2 hodiny
-    - cron: '0 */2 * * *'
   workflow_dispatch: # Umožňuje manuálne spustenie z GitHub Actions rozhrania
     inputs:
       dry_run:
